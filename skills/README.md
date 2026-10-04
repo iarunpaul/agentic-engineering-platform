@@ -4,7 +4,7 @@ Skills are reusable, version-controlled engineering workflows that help AI agent
 
 They are designed to remain portable across coding agents wherever practical.
 
-> Standards define what good engineering looks like.  
+> Standards define what good engineering looks like.
 > Skills define how an agent performs a particular engineering activity.
 
 Skills must not become substitutes for engineering standards, policies or automated controls.
