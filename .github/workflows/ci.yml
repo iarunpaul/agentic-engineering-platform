@@ -1,0 +1,331 @@
+name: CI - Engineering Quality Gates
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - main
+
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+
+  build:
+    name: ENG-001 Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install CI dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Execute ENG-001
+        run: |
+          python scripts/run_control.py \
+            --control-id ENG-001 \
+            --tool platform-validator \
+            --summary-pass "Platform build validation passed." \
+            --summary-fail "Platform build validation failed." \
+            -- \
+            python scripts/validate_platform.py
+
+      - name: Upload ENG-001 evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-eng-001
+          path: evidence/generated/ENG-001.json
+          if-no-files-found: error
+          retention-days: 30
+
+  lint:
+    name: ENG-003 Repository Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install CI dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Execute ENG-003
+        run: |
+          python scripts/run_control.py \
+            --control-id ENG-003 \
+            --tool repository-linter \
+            --summary-pass "Repository lint passed." \
+            --summary-fail "Repository lint failed." \
+            -- \
+            python scripts/lint_repository.py
+
+      - name: Upload ENG-003 evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-eng-003
+          path: evidence/generated/ENG-003.json
+          if-no-files-found: error
+          retention-days: 30
+
+  tests:
+    name: TST-001 Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install CI dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Execute TST-001
+        run: |
+          python scripts/run_control.py \
+            --control-id TST-001 \
+            --tool python-unittest \
+            --summary-pass "Automated tests passed." \
+            --summary-fail "Automated tests failed." \
+            -- \
+            python -m unittest discover -s tests -v
+
+      - name: Upload TST-001 evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-tst-001
+          path: evidence/generated/TST-001.json
+          if-no-files-found: error
+          retention-days: 30
+
+  secret-scan:
+    name: SEC-001 Secret Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run Gitleaks
+        id: gitleaks
+        continue-on-error: true
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        if: always()
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Produce SEC-001 evidence
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ steps.gitleaks.outcome }}" = "success" ]; then
+            STATUS="PASS"
+            SUMMARY="Secret scan passed."
+          else
+            STATUS="FAIL"
+            SUMMARY="Secret scan detected a problem."
+          fi
+
+          python scripts/write_evidence.py \
+            --control-id SEC-001 \
+            --status "$STATUS" \
+            --source scanner \
+            --tool gitleaks \
+            --summary "$SUMMARY"
+
+      - name: Upload SEC-001 evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-sec-001
+          path: evidence/generated/SEC-001.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce SEC-001 result
+        if: always()
+        shell: bash
+        run: |
+          test "${{ steps.gitleaks.outcome }}" = "success"
+
+  dependency-review:
+    name: SEC-002 Dependency Vulnerability Review
+
+    if: github.event_name == 'pull_request'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Review dependency changes
+        id: dependency-review
+        continue-on-error: true
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+
+      - name: Setup Python
+        if: always()
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Produce SEC-002 evidence
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ steps.dependency-review.outcome }}" = "success" ]; then
+            STATUS="PASS"
+            SUMMARY="Dependency vulnerability review passed."
+          else
+            STATUS="FAIL"
+            SUMMARY="Dependency vulnerability review failed."
+          fi
+
+          python scripts/write_evidence.py \
+            --control-id SEC-002 \
+            --status "$STATUS" \
+            --source scanner \
+            --tool github-dependency-review \
+            --summary "$SUMMARY"
+
+      - name: Upload SEC-002 evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-sec-002
+          path: evidence/generated/SEC-002.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce SEC-002 result
+        if: always()
+        shell: bash
+        run: |
+          test "${{ steps.dependency-review.outcome }}" = "success"
+
+  evidence-gate:
+    name: GOV-003 Evidence Gate
+
+    if: always()
+
+    needs:
+      - build
+      - lint
+      - tests
+      - secret-scan
+      - dependency-review
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install CI dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Download control evidence
+        uses: actions/download-artifact@v8
+        with:
+          pattern: evidence-*
+          path: collected-evidence
+          merge-multiple: true
+
+      - name: Validate evidence
+        shell: bash
+        run: |
+          REQUIRED="ENG-001 ENG-003 TST-001 SEC-001"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            REQUIRED="$REQUIRED SEC-002"
+          fi
+
+          python scripts/run_control.py \
+            --control-id GOV-003 \
+            --tool evidence-validator \
+            --summary-pass "Required engineering evidence is valid." \
+            --summary-fail "Engineering evidence validation failed." \
+            -- \
+            python scripts/validate_evidence.py \
+              --directory collected-evidence \
+              --required $REQUIRED
+
+      - name: Upload GOV-003 evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-gov-003
+          path: evidence/generated/GOV-003.json
+          if-no-files-found: error
+          retention-days: 30
