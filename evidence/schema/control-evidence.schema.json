@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-engineering-platform/schemas/control-evidence.schema.json",
+  "title": "Engineering Control Evidence",
+  "description": "Machine-readable evidence produced by engineering controls.",
+  "type": "object",
+  "required": [
+    "controlId",
+    "timestamp",
+    "status",
+    "subject",
+    "source"
+  ],
+  "properties": {
+    "controlId": {
+      "type": "string",
+      "description": "Stable organisational control identifier.",
+      "pattern": "^[A-Z]{2,4}-[0-9]{3}$",
+      "examples": [
+        "ENG-001",
+        "TST-001",
+        "SEC-001"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time at which control execution completed."
+    },
+    "status": {
+      "type": "string",
+      "description": "Common control outcome.",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "WARN",
+        "NOT_APPLICABLE",
+        "NOT_EXECUTED"
+      ]
+    },
+    "subject": {
+      "$ref": "#/$defs/subject"
+    },
+    "source": {
+      "type": "string",
+      "description": "Mechanism that produced the evidence.",
+      "enum": [
+        "local",
+        "ci",
+        "scanner",
+        "review",
+        "approval-system",
+        "deployment-system",
+        "agent",
+        "other"
+      ]
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Repository associated with the evaluated subject."
+    },
+    "commit": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source commit identifier where applicable."
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source branch where applicable."
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the CI, scanner, review, or control execution."
+    },
+    "tool": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tool used to perform the control."
+    },
+    "toolVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of the tool used to perform the control."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short human-readable description of the result."
+    },
+    "evidenceUri": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Location of detailed supporting evidence.",
+      "examples": [
+        "artifact://ci/run-18452/test-results",
+        "https://example.invalid/evidence/18452"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Control-specific structured information.",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "subject": {
+      "type": "object",
+      "description": "Item evaluated by the control.",
+      "required": [
+        "type",
+        "value"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Subject type.",
+          "examples": [
+            "commit",
+            "pull-request",
+            "artifact",
+            "container-image",
+            "architecture-change",
+            "release",
+            "deployment",
+            "production-change"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier of the evaluated subject."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "NOT_APPLICABLE"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "summary"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "NOT_EXECUTED"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "summary"
+        ]
+      }
+    }
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "controlId": "TST-001",
+      "timestamp": "2026-10-04T10:30:00Z",
+      "status": "PASS",
+      "subject": {
+        "type": "commit",
+        "value": "a83de1f"
+      },
+      "source": "ci",
+      "repository": "agentic-engineering-platform",
+      "commit": "a83de1f",
+      "runId": "18452",
+      "tool": "test-runner",
+      "summary": "All automated tests passed.",
+      "metadata": {
+        "total": 184,
+        "passed": 184,
+        "failed": 0
+      }
+    }
+  ]
+}

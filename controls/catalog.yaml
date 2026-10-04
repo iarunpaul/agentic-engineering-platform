@@ -1,0 +1,805 @@
+version: "0.1"
+
+control_catalog:
+  name: Agentic Engineering Platform Control Catalogue
+  description: >
+    Machine-readable catalogue of organisational engineering controls.
+    Controls are intentionally independent of specific CI vendors,
+    scanners, programming languages, cloud providers, or AI agents.
+  principle: "Guidance influences behaviour; controls provide evidence."
+
+outcomes:
+  - PASS
+  - FAIL
+  - WARN
+  - NOT_APPLICABLE
+  - NOT_EXECUTED
+
+enforcement_levels:
+  - blocking
+  - non_blocking
+  - conditional
+
+control_types:
+  - automated
+  - review
+  - approval
+  - preventive
+
+stages:
+  - design
+  - pre_commit
+  - pull_request
+  - build
+  - main
+  - release
+  - production
+  - scheduled
+  - execution
+  - exception
+
+controls:
+
+  - id: ENG-001
+    name: Build Verification
+    domain: engineering
+    description: >
+      Verify that the repository builds or compiles successfully.
+    source:
+      - standards/engineering/development.md
+      - policies/quality-gates.md
+    type:
+      - automated
+    enforcement: blocking
+    stage:
+      - pull_request
+      - main
+    evidence:
+      type: build-result
+
+  - id: ENG-002
+    name: Static Analysis
+    domain: engineering
+    description: >
+      Verify compliance with repository static-quality and analyzer rules.
+    source:
+      - standards/engineering/development.md
+      - policies/quality-gates.md
+    type:
+      - automated
+    enforcement: blocking
+    stage:
+      - pull_request
+    evidence:
+      type: static-analysis-report
+
+  - id: ENG-003
+    name: Formatting and Linting
+    domain: engineering
+    description: >
+      Verify repository formatting and linting expectations.
+    source:
+      - standards/engineering/development.md
+      - policies/quality-gates.md
+    type:
+      - automated
+    enforcement: blocking
+    stage:
+      - pre_commit
+      - pull_request
+    evidence:
+      type: lint-result
+
+  - id: ENG-004
+    name: Compatibility Review
+    domain: engineering
+    description: >
+      Review material contract, configuration, or persistence changes
+      for compatibility impact.
+    source:
+      - standards/engineering/development.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - design
+      - pull_request
+    evidence:
+      type: review-decision
+
+  - id: ENG-005
+    name: Dependency Review
+    domain: engineering
+    description: >
+      Verify that newly introduced dependencies are intentional,
+      maintainable, and appropriately governed.
+    source:
+      - standards/engineering/development.md
+    type:
+      - automated
+      - review
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: dependency-review
+
+  - id: TST-001
+    name: Automated Test Execution
+    domain: testing
+    description: >
+      Execute automated tests and verify that required test suites pass.
+    source:
+      - standards/testing/testing-standard.md
+      - policies/quality-gates.md
+    type:
+      - automated
+    enforcement: blocking
+    stage:
+      - pull_request
+      - main
+    evidence:
+      type: test-report
+
+  - id: TST-002
+    name: Test Adequacy Review
+    domain: testing
+    description: >
+      Review whether testing provides sufficient evidence for the
+      risk and behaviour of the change.
+    source:
+      - standards/testing/testing-standard.md
+      - skills/test/SKILL.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: test-review
+
+  - id: TST-003
+    name: Contract Testing
+    domain: testing
+    description: >
+      Verify relevant external contracts and integration compatibility.
+    source:
+      - standards/testing/testing-standard.md
+      - standards/api/api-standard.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: contract-test-result
+
+  - id: TST-004
+    name: Flaky Test Governance
+    domain: testing
+    description: >
+      Detect or explicitly govern unreliable automated tests.
+    source:
+      - standards/testing/testing-standard.md
+    type:
+      - automated
+      - review
+    enforcement: conditional
+    stage:
+      - pull_request
+      - scheduled
+    evidence:
+      type: flaky-test-result
+
+  - id: TST-005
+    name: Security Behaviour Testing
+    domain: testing
+    description: >
+      Verify security-sensitive application behaviour where applicable.
+    source:
+      - standards/testing/testing-standard.md
+      - standards/security/secure-engineering.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: security-test-result
+
+  - id: SEC-001
+    name: Secret Detection
+    domain: security
+    description: >
+      Detect secrets or sensitive credentials committed to source control.
+    source:
+      - policies/secrets.md
+      - policies/quality-gates.md
+    type:
+      - automated
+    enforcement: blocking
+    stage:
+      - pre_commit
+      - pull_request
+    evidence:
+      type: security-scan-report
+
+  - id: SEC-002
+    name: Dependency Vulnerability Scan
+    domain: security
+    description: >
+      Detect known vulnerabilities in software dependencies.
+    source:
+      - standards/security/secure-engineering.md
+      - policies/quality-gates.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - pull_request
+      - scheduled
+    evidence:
+      type: vulnerability-report
+
+  - id: SEC-003
+    name: Static Application Security Testing
+    domain: security
+    description: >
+      Scan source code for security weaknesses using static analysis.
+    source:
+      - standards/security/secure-engineering.md
+      - policies/quality-gates.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: sast-report
+
+  - id: SEC-004
+    name: Infrastructure Security Scan
+    domain: security
+    description: >
+      Scan infrastructure-as-code definitions for security weaknesses
+      and unsafe configuration.
+    source:
+      - standards/security/secure-engineering.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: iac-security-report
+
+  - id: SEC-005
+    name: Container Vulnerability Scan
+    domain: security
+    description: >
+      Scan container images for known vulnerabilities.
+    source:
+      - standards/security/secure-engineering.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - build
+      - release
+    evidence:
+      type: container-scan-report
+
+  - id: SEC-006
+    name: Security Review
+    domain: security
+    description: >
+      Perform an explicit security review for security-sensitive changes.
+    source:
+      - standards/security/secure-engineering.md
+      - skills/security-review/SKILL.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - design
+      - pull_request
+      - release
+    evidence:
+      type: security-review
+
+  - id: SEC-007
+    name: Tenant Isolation Verification
+    domain: security
+    description: >
+      Verify tenant boundaries and cross-tenant access protections.
+    source:
+      - standards/security/secure-engineering.md
+    type:
+      - automated
+      - review
+    enforcement: conditional
+    stage:
+      - pull_request
+      - release
+    evidence:
+      type: tenant-isolation-evidence
+
+  - id: SEC-008
+    name: Secret Exposure Response
+    domain: security
+    description: >
+      Require rotation or revocation and documented remediation
+      when a secret is exposed.
+    source:
+      - policies/secrets.md
+      - policies/human-approval.md
+    type:
+      - review
+      - approval
+    enforcement: blocking
+    stage:
+      - exception
+      - production
+    evidence:
+      type: secret-remediation-record
+
+  - id: API-001
+    name: API Contract Validation
+    domain: api
+    description: >
+      Validate API or message contract structure and schema correctness.
+    source:
+      - standards/api/api-standard.md
+    type:
+      - automated
+    enforcement: blocking
+    stage:
+      - pull_request
+    evidence:
+      type: contract-validation-report
+
+  - id: API-002
+    name: API Compatibility Check
+    domain: api
+    description: >
+      Detect incompatible changes to externally consumed contracts.
+    source:
+      - standards/api/api-standard.md
+      - standards/engineering/development.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: compatibility-report
+
+  - id: API-003
+    name: Breaking Change Approval
+    domain: api
+    description: >
+      Require explicit approval for externally visible breaking changes.
+    source:
+      - standards/api/api-standard.md
+      - policies/human-approval.md
+    type:
+      - approval
+    enforcement: blocking
+    stage:
+      - release
+    evidence:
+      type: approval-record
+
+  - id: API-004
+    name: API Governance Linting
+    domain: api
+    description: >
+      Verify machine-checkable API governance rules where applicable.
+    source:
+      - standards/api/api-standard.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: api-lint-report
+
+  - id: ARC-001
+    name: Grill Review
+    domain: architecture
+    description: >
+      Challenge material requirements or architecture proposals before
+      significant implementation begins.
+    source:
+      - standards/architecture/principles.md
+      - skills/grill/SKILL.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - design
+    evidence:
+      type: grill-review
+
+  - id: ARC-002
+    name: Architecture Review
+    domain: architecture
+    description: >
+      Evaluate significant architecture against architectural drivers,
+      organisational standards, constraints, and trade-offs.
+    source:
+      - standards/architecture/principles.md
+      - skills/architecture-review/SKILL.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - design
+      - pull_request
+    evidence:
+      type: architecture-review
+
+  - id: ARC-003
+    name: Architecture Decision Record
+    domain: architecture
+    description: >
+      Verify that consequential architectural decisions are recorded
+      where required.
+    source:
+      - standards/architecture/principles.md
+      - docs/decisions/README.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - design
+      - pull_request
+    evidence:
+      type: adr-reference
+
+  - id: ARC-004
+    name: Complexity Review
+    domain: architecture
+    description: >
+      Review whether introduced architecture complexity is justified
+      by material architectural drivers.
+    source:
+      - standards/architecture/principles.md
+      - skills/grill/SKILL.md
+      - skills/architecture-review/SKILL.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - design
+    evidence:
+      type: complexity-review
+
+  - id: ARC-005
+    name: Architecture Test
+    domain: architecture
+    description: >
+      Verify machine-checkable architectural constraints where practical.
+    source:
+      - standards/architecture/principles.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: architecture-test-report
+
+  - id: OBS-001
+    name: Observability Review
+    domain: observability
+    description: >
+      Review whether material production workloads expose sufficient
+      telemetry for operation and diagnosis.
+    source:
+      - standards/observability/observability-standard.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - pull_request
+      - release
+    evidence:
+      type: observability-review
+
+  - id: OBS-002
+    name: Sensitive Logging Verification
+    domain: observability
+    description: >
+      Verify that telemetry does not expose prohibited secrets or
+      sensitive information.
+    source:
+      - standards/observability/observability-standard.md
+      - policies/secrets.md
+    type:
+      - automated
+      - review
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: logging-security-result
+
+  - id: OBS-003
+    name: Health Signal Verification
+    domain: observability
+    description: >
+      Verify meaningful health and readiness signals for production services.
+    source:
+      - standards/observability/observability-standard.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - release
+    evidence:
+      type: health-check-result
+
+  - id: OBS-004
+    name: Correlation Verification
+    domain: observability
+    description: >
+      Verify correlation or trace propagation across important
+      distributed operations where required.
+    source:
+      - standards/observability/observability-standard.md
+    type:
+      - automated
+      - review
+    enforcement: conditional
+    stage:
+      - pull_request
+      - release
+    evidence:
+      type: correlation-verification
+
+  - id: AI-001
+    name: AI Change Quality Enforcement
+    domain: ai
+    description: >
+      Ensure AI-generated changes pass the same engineering controls
+      as human-generated changes.
+    source:
+      - standards/ai/ai-assisted-engineering.md
+      - policies/quality-gates.md
+    type:
+      - automated
+    enforcement: blocking
+    stage:
+      - pull_request
+    evidence:
+      type: ci-result
+
+  - id: AI-002
+    name: Evidence-Backed Agent Reporting
+    domain: ai
+    description: >
+      Ensure agents distinguish verified outcomes from assumptions
+      and unexecuted checks.
+    source:
+      - standards/ai/ai-assisted-engineering.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - pull_request
+      - release
+    evidence:
+      type: agent-report-review
+
+  - id: AI-003
+    name: Agent Portability Review
+    domain: ai
+    description: >
+      Verify that durable organisational rules are not trapped solely
+      in vendor-specific prompts or configuration.
+    source:
+      - standards/ai/agent-portability.md
+    type:
+      - review
+    enforcement: non_blocking
+    stage:
+      - pull_request
+    evidence:
+      type: portability-review
+
+  - id: AI-004
+    name: Vendor Configuration Review
+    domain: ai
+    description: >
+      Verify that vendor-specific AI integration does not override
+      organisational policy or control requirements.
+    source:
+      - standards/ai/agent-portability.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - pull_request
+    evidence:
+      type: vendor-config-review
+
+  - id: AI-005
+    name: High-Risk Agent Action Approval
+    domain: ai
+    description: >
+      Require explicit human approval before AI agents perform
+      high-risk operations.
+    source:
+      - standards/ai/ai-assisted-engineering.md
+      - policies/human-approval.md
+    type:
+      - approval
+    enforcement: blocking
+    stage:
+      - execution
+      - production
+    evidence:
+      type: approval-record
+
+  - id: REL-001
+    name: Production Readiness Review
+    domain: release
+    description: >
+      Evaluate whether a material release is operationally ready
+      for production.
+    source:
+      - skills/production-readiness/SKILL.md
+      - standards/architecture/principles.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - release
+    evidence:
+      type: production-readiness-review
+
+  - id: REL-002
+    name: Deployment Validation
+    domain: release
+    description: >
+      Verify that deployment is repeatable and technically valid.
+    source:
+      - standards/engineering/development.md
+      - standards/architecture/principles.md
+    type:
+      - automated
+    enforcement: conditional
+    stage:
+      - release
+    evidence:
+      type: deployment-validation-result
+
+  - id: REL-003
+    name: Migration Safety Review
+    domain: release
+    description: >
+      Review material data or schema migrations for safety,
+      compatibility, rollback, and recovery concerns.
+    source:
+      - standards/engineering/development.md
+      - policies/human-approval.md
+    type:
+      - review
+    enforcement: conditional
+    stage:
+      - release
+    evidence:
+      type: migration-review
+
+  - id: REL-004
+    name: Destructive Operation Approval
+    domain: release
+    description: >
+      Require explicit human approval before destructive production operations.
+    source:
+      - policies/human-approval.md
+    type:
+      - approval
+    enforcement: blocking
+    stage:
+      - production
+    evidence:
+      type: approval-record
+
+  - id: REL-005
+    name: Production Deployment Approval
+    domain: release
+    description: >
+      Require an authorised release mechanism or explicit approval
+      before production deployment.
+    source:
+      - policies/human-approval.md
+    type:
+      - preventive
+      - approval
+    enforcement: blocking
+    stage:
+      - production
+    evidence:
+      type: deployment-approval
+
+  - id: GOV-001
+    name: Quality Gate Protection
+    domain: governance
+    description: >
+      Prevent required quality gates from being bypassed silently.
+    source:
+      - policies/quality-gates.md
+    type:
+      - preventive
+    enforcement: blocking
+    stage:
+      - pull_request
+      - release
+    evidence:
+      type: governance-configuration
+
+  - id: GOV-002
+    name: Quality Gate Exception Approval
+    domain: governance
+    description: >
+      Require explicit approval for exceptions to mandatory quality gates.
+    source:
+      - policies/quality-gates.md
+      - policies/human-approval.md
+    type:
+      - approval
+    enforcement: blocking
+    stage:
+      - exception
+    evidence:
+      type: exception-record
+
+  - id: GOV-003
+    name: Evidence Validation
+    domain: governance
+    description: >
+      Validate control evidence before using it for release or
+      governance decisions.
+    source:
+      - policies/quality-gates.md
+      - evidence/evidence-contract.md
+    type:
+      - automated
+    enforcement: blocking
+    stage:
+      - pull_request
+      - release
+    evidence:
+      type: evidence-validation-result
+
+  - id: GOV-004
+    name: Governance Change Approval
+    domain: governance
+    description: >
+      Require approval for material changes to production,
+      security, or quality-governance controls.
+    source:
+      - policies/human-approval.md
+      - policies/quality-gates.md
+    type:
+      - approval
+    enforcement: blocking
+    stage:
+      - pull_request
+      - production
+    evidence:
+      type: approval-record
+
+phase_0:
+  initially_implemented_controls:
+    - ENG-001
+    - ENG-003
+    - TST-001
+    - SEC-001
+    - SEC-002
+  objective: >
+    Establish the first executable standards-to-controls-to-evidence
+    quality-gate pipeline before expanding control coverage.
