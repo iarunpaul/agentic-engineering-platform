@@ -343,6 +343,27 @@ controls:
     evidence:
       type: secret-remediation-record
 
+  - id: SEC-009
+    name: Immutable GitHub Action Pinning
+    domain: security
+    description: >
+      Verify that third-party and GitHub-hosted workflow actions are
+      pinned to immutable full commit SHAs rather than mutable tags
+      or branch references.
+    source:
+      - standards/security/secure-engineering.md
+      - standards/ai/agent-portability.md
+      - policies/quality-gates.md
+    type:
+      - automated
+      - preventive
+    enforcement: blocking
+    stage:
+      - pull_request
+      - main
+    evidence:
+      type: workflow-supply-chain-validation
+
   - id: API-001
     name: API Contract Validation
     domain: api
@@ -800,6 +821,7 @@ phase_0:
     - TST-001
     - SEC-001
     - SEC-002
+    - SEC-009
   objective: >
     Establish the first executable standards-to-controls-to-evidence
     quality-gate pipeline before expanding control coverage.

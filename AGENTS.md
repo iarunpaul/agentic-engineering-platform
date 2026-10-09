@@ -129,6 +129,35 @@ Automated controls are authoritative where they exist.
 
 Do not bypass failing quality gates unless an explicitly documented and approved exception exists.
 
+## Controls and Evidence
+
+Organisational requirements may be enforced through controls defined under:
+
+```text
+controls/
+```
+
+Agents must distinguish between:
+
+- guidance
+- controls
+- evidence
+- approval
+
+Where an applicable control exists, use its result rather than independently claiming compliance.
+
+Control execution should produce or reference evidence conforming to the repository evidence model under:
+
+```text
+evidence/
+```
+
+A control that was not executed must not be reported as passed.
+
+Blocking controls must not be bypassed without an authorised exception.
+
+When a change modifies control implementation, workflow security, release governance, or other enforcement mechanisms, agents should treat that change as security- and governance-sensitive and apply the relevant review expectations.
+
 ## Architectural Decisions
 
 Create or update an architectural decision when a change:
