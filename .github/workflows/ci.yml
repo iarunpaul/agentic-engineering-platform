@@ -267,6 +267,40 @@ jobs:
         run: |
           test "${{ steps.dependency-review.outcome }}" = "success"
 
+  action-pinning:
+    name: SEC-009 Immutable Action Pinning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Execute SEC-009
+        run: |
+          python scripts/run_control.py \
+            --control-id SEC-009 \
+            --tool action-pinning-validator \
+            --summary-pass "GitHub Actions are pinned to immutable SHAs." \
+            --summary-fail "One or more GitHub Actions are not pinned to full SHAs." \
+            -- \
+            python scripts/validate_action_pinning.py
+
+      - name: Upload SEC-009 evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: evidence-sec-009
+          path: evidence/generated/SEC-009.json
+          if-no-files-found: error
+          retention-days: 30
+
   evidence-gate:
     name: GOV-003 Evidence Gate
 
@@ -278,6 +312,7 @@ jobs:
       - tests
       - secret-scan
       - dependency-review
+      - action-pinning
 
     runs-on: ubuntu-latest
 
@@ -309,7 +344,7 @@ jobs:
       - name: Validate evidence
         shell: bash
         run: |
-          REQUIRED="ENG-001 ENG-003 TST-001 SEC-001"
+          REQUIRED="ENG-001 ENG-003 TST-001 SEC-001 SEC-009"
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             REQUIRED="$REQUIRED SEC-002"

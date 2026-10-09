@@ -64,6 +64,7 @@ Evidence
 | SEC-006 | Security-sensitive changes require security review | Secure Engineering Standard | Security review | Review | Conditional | Security-review decision |
 | SEC-007 | Tenant boundaries must be protected | Secure Engineering Standard | Tenant isolation verification | Automated + Review | Conditional | Tests / review evidence |
 | SEC-008 | Exposed secrets must be rotated | Secrets Policy | Secret exposure response | Approval + Review | Blocking | Rotation evidence |
+| SEC-009 | GitHub Actions must use immutable full commit SHAs | Secure Engineering Standard + Quality Gates Policy | Action pinning validation | Automated + Preventive | Blocking | Workflow supply-chain validation |
 
 ---
 
