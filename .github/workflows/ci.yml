@@ -57,7 +57,7 @@ jobs:
 
       - name: Upload ENG-001 evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: evidence-eng-001
           path: evidence/generated/ENG-001.json
@@ -98,7 +98,7 @@ jobs:
 
       - name: Upload ENG-003 evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: evidence-eng-003
           path: evidence/generated/ENG-003.json
@@ -139,7 +139,7 @@ jobs:
 
       - name: Upload TST-001 evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: evidence-tst-001
           path: evidence/generated/TST-001.json
@@ -191,7 +191,7 @@ jobs:
 
       - name: Upload SEC-001 evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: evidence-sec-001
           path: evidence/generated/SEC-001.json
@@ -254,7 +254,7 @@ jobs:
 
       - name: Upload SEC-002 evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: evidence-sec-002
           path: evidence/generated/SEC-002.json
@@ -294,7 +294,7 @@ jobs:
 
       - name: Upload SEC-009 evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: evidence-sec-009
           path: evidence/generated/SEC-009.json
@@ -362,7 +362,7 @@ jobs:
 
       - name: Upload GOV-003 evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: evidence-gov-003
           path: evidence/generated/GOV-003.json
