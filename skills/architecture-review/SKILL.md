@@ -35,6 +35,86 @@ Review available:
 - policies
 - operational constraints
 
+## Review Execution Protocol
+
+Architecture Review follows:
+
+```text
+standards/ai/review-execution.md
+```
+
+The review must have an explicit review target and a deterministic review context.
+
+Before beginning substantive review:
+
+1. resolve the review target
+2. identify relevant upstream requirements
+3. identify relevant Grill or requirement-review evidence
+4. identify parent architectural decisions
+5. identify relevant previous architecture reviews
+6. identify applicable standards and policies
+7. prepare the review execution using repository automation where available
+
+When available, use:
+
+```text
+scripts/review_execution.py
+```
+
+to generate the normalized review manifest and input fingerprint.
+
+### Target Resolution
+
+If the user provides an explicit target, use it.
+
+If no target is supplied:
+
+- if exactly one credible active architecture artifact exists, state that target before proceeding
+- if multiple credible targets exist, ask the user which artifact to review
+- do not silently perform a repository-wide review
+
+Repository-wide review must be explicitly requested.
+
+### Context Resolution
+
+Relevant context normally includes:
+
+```text
+requirements
+requirements Grill/review
+parent ADRs
+reviews of parent ADRs
+current review target
+applicable standards/policies
+```
+
+Do not mechanically include every ADR or review.
+
+Only include artifacts that materially affect the current decision.
+
+### Prior Finding Resolution
+
+Where previous reviews contain findings that the current architecture is expected to address, classify them as:
+
+```text
+RESOLVES
+PARTIALLY RESOLVES
+DOES NOT RESOLVE
+NOT APPLICABLE
+```
+
+Do not silently discard inherited findings.
+
+### Idempotency
+
+If repository review-execution tooling reports an equivalent completed review with the same input fingerprint:
+
+- do not create another completed review
+- report the existing review path
+- reuse the prior result unless the user explicitly requests a rerun
+
+A deliberate rerun must preserve history rather than overwrite the existing review.
+
 ## Workflow
 
 ### 1. Identify Architectural Drivers
@@ -140,6 +220,38 @@ docs/decisions/
 Record only significant and durable decisions.
 
 ## Output
+
+### Review Context
+
+Record the decision chain used for the review.
+
+Example:
+
+```text
+Requirements:
+docs/architecture/requirements.md
+
+Requirements Review:
+docs/reviews/requirements/0001-multi-tenant-modernisation.md
+
+Parent Decision:
+docs/architecture/ADRs/0001-multi-tenant-data-topology.md
+
+Parent Architecture Review:
+docs/reviews/architecture/0001-multi-tenant-data-topology.md
+
+Review Target:
+docs/architecture/ADRs/0002-tenant-directory-and-placement-control-plane.md
+```
+
+### Prior Finding Resolution
+
+For relevant findings inherited from earlier reviews:
+
+| Prior Finding | Source | Resolution |
+|---|---|---|
+| Tenant directory availability undefined | REVIEW-ARC-0001 | RESOLVES / PARTIALLY RESOLVES / DOES NOT RESOLVE |
+| Stale routing behaviour undefined | REVIEW-ARC-0001 | ... |
 
 ### Architecture Summary
 
