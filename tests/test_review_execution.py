@@ -1,4 +1,5 @@
 import importlib.util
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,6 +26,8 @@ review_execution = (
         SPEC
     )
 )
+
+sys.modules[SPEC.name] = review_execution
 
 SPEC.loader.exec_module(
     review_execution
