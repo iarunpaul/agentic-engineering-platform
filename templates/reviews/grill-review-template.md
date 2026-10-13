@@ -10,6 +10,9 @@ status: completed
 date: {{date}}
 reviewed-artifact: {{reviewed_artifact}}
 platform-version: {{platform_version}}
+protocol-version: {{protocol_version}}
+target-sha256: {{target_sha256}}
+input-fingerprint: {{input_fingerprint}}
 ```
 
 ## Purpose

@@ -2,6 +2,8 @@
 
 ## Metadata
 
+## Metadata
+
 ```yaml
 id: REVIEW-ARC-{{sequence}}
 type: architecture
@@ -10,7 +12,40 @@ status: completed
 date: {{date}}
 reviewed-artifact: {{reviewed_artifact}}
 platform-version: {{platform_version}}
+protocol-version: {{protocol_version}}
+target-sha256: {{target_sha256}}
+input-fingerprint: {{input_fingerprint}}
 ```
+
+## Review Context
+
+### Requirements
+
+{{requirements}}
+
+### Requirements Review
+
+{{requirements_review}}
+
+### Parent Decisions
+
+{{parent_decisions}}
+
+### Previous Architecture Reviews
+
+{{previous_architecture_reviews}}
+
+### Review Target
+
+{{reviewed_artifact}}
+
+### Applicable Standards and Policies
+
+{{standards_and_policies}}
+
+## Prior Finding Resolution
+
+{{prior_finding_resolution}}
 
 ## Purpose
 
