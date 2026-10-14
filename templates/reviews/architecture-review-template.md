@@ -2,8 +2,6 @@
 
 ## Metadata
 
-## Metadata
-
 ```yaml
 id: REVIEW-ARC-{{sequence}}
 type: architecture
@@ -13,8 +11,10 @@ date: {{date}}
 reviewed-artifact: {{reviewed_artifact}}
 platform-version: {{platform_version}}
 protocol-version: {{protocol_version}}
+execution-mode: {{execution_mode}}
 target-sha256: {{target_sha256}}
 input-fingerprint: {{input_fingerprint}}
+{{lineage_metadata}}
 ```
 
 ## Review Context
@@ -143,6 +143,8 @@ INSUFFICIENT INFORMATION
 ## Evidence
 
 This document records the completed architecture review and may be referenced as evidence for architecture-governance controls.
+
+Execution semantics are defined by the recorded Review Execution Protocol version and execution mode.
 
 This review does not replace an ADR.
 

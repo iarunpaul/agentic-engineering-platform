@@ -68,6 +68,42 @@ def repository_relative(
     return relative.as_posix()
 
 
+def extract_metadata_value(
+    text: str,
+    key: str,
+) -> str | None:
+    pattern = re.compile(
+        rf"^{re.escape(key)}:\s*(.+?)\s*$",
+        re.MULTILINE,
+    )
+
+    match = pattern.search(text)
+
+    if not match:
+        return None
+
+    value = (
+        match.group(1)
+        .strip()
+        .strip("\"'")
+    )
+
+    if not value:
+        return None
+
+    return value
+
+
+def review_metadata_value(
+    review: Path,
+    key: str,
+) -> str | None:
+    return extract_metadata_value(
+        review.read_text(encoding="utf-8"),
+        key,
+    )
+
+
 def resolve_input_file(
     root: Path,
     value: str,
@@ -90,6 +126,68 @@ def resolve_input_file(
     )
 
 
+def is_review_of_target(
+    root: Path,
+    context_value: str,
+    target_path: str,
+) -> bool:
+    context_path = root / context_value
+
+    if not context_path.is_file():
+        return False
+
+    try:
+        relative = repository_relative(
+            root,
+            context_path,
+        )
+    except SystemExit:
+        return False
+
+    if "/reviews/" not in f"/{relative}":
+        return False
+
+    reviewed_artifact = review_metadata_value(
+        context_path,
+        "reviewed-artifact",
+    )
+
+    return reviewed_artifact == target_path
+
+
+def normalized_context_entries(
+    root: Path,
+    target_path: str,
+    contexts: list[str],
+) -> tuple[tuple[str, str], ...]:
+    entries: set[tuple[str, str]] = set()
+
+    for context in contexts:
+        if context == target_path:
+            continue
+
+        if is_review_of_target(
+            root,
+            context,
+            target_path,
+        ):
+            continue
+
+        entries.add(
+            resolve_input_file(
+                root,
+                context,
+            )
+        )
+
+    return tuple(
+        sorted(
+            entries,
+            key=lambda item: item[0],
+        )
+    )
+
+
 def build_review_input(
     root: Path,
     review_type: str,
@@ -103,20 +201,10 @@ def build_review_input(
         target,
     )
 
-    context_entries = {
-        resolve_input_file(
-            root,
-            context,
-        )
-        for context in contexts
-        if context != target
-    }
-
-    ordered_context = tuple(
-        sorted(
-            context_entries,
-            key=lambda item: item[0],
-        )
+    ordered_context = normalized_context_entries(
+        root=root,
+        target_path=target_path,
+        contexts=contexts,
     )
 
     return ReviewInput(
@@ -171,61 +259,94 @@ def fingerprint(
     ).hexdigest()
 
 
-def extract_metadata_value(
-    text: str,
-    key: str,
-) -> str | None:
-    pattern = re.compile(
-        rf"^{re.escape(key)}:\s*(.+?)\s*$",
-        re.MULTILINE,
+def review_sequence(path: Path) -> int:
+    match = SEQUENCE_PATTERN.match(
+        path.name
     )
 
-    match = pattern.search(text)
-
     if not match:
-        return None
+        return 0
 
-    return (
-        match.group(1)
-        .strip()
-        .strip("\"'")
+    return int(match.group(1))
+
+
+def completed_reviews(
+    reviews_dir: Path,
+) -> list[Path]:
+    if not reviews_dir.exists():
+        return []
+
+    result: list[Path] = []
+
+    for review in reviews_dir.glob("*.md"):
+        if (
+            review_metadata_value(
+                review,
+                "status",
+            )
+            == "completed"
+        ):
+            result.append(review)
+
+    return sorted(
+        result,
+        key=review_sequence,
     )
 
 
 def find_equivalent_review(
     reviews_dir: Path,
     input_fingerprint: str,
+    protocol_version: str = PROTOCOL_VERSION,
 ) -> Path | None:
-    if not reviews_dir.exists():
-        return None
-
-    for review in sorted(
-        reviews_dir.glob("*.md")
+    for review in completed_reviews(
+        reviews_dir
     ):
-        text = review.read_text(
-            encoding="utf-8"
-        )
-
-        status = extract_metadata_value(
-            text,
-            "status",
+        recorded_protocol = review_metadata_value(
+            review,
+            "protocol-version",
         )
 
         recorded_fingerprint = (
-            extract_metadata_value(
-                text,
+            review_metadata_value(
+                review,
                 "input-fingerprint",
             )
         )
 
         if (
-            status == "completed"
+            recorded_protocol == protocol_version
             and recorded_fingerprint
             == input_fingerprint
         ):
             return review
 
     return None
+
+
+def find_latest_review_for_target(
+    reviews_dir: Path,
+    target_path: str,
+) -> Path | None:
+    matches = [
+        review
+        for review in completed_reviews(
+            reviews_dir
+        )
+        if review_metadata_value(
+            review,
+            "reviewed-artifact",
+        )
+        == target_path
+    ]
+
+    if not matches:
+        return None
+
+    return max(
+        matches,
+        key=review_sequence,
+    )
 
 
 def next_sequence(
@@ -237,16 +358,9 @@ def next_sequence(
         return 1
 
     for path in reviews_dir.glob("*.md"):
-        match = SEQUENCE_PATTERN.match(
-            path.name
-        )
-
-        if not match:
-            continue
-
         highest = max(
             highest,
-            int(match.group(1)),
+            review_sequence(path),
         )
 
     return highest + 1
@@ -256,10 +370,65 @@ def format_sequence(value: int) -> str:
     return f"{value:04d}"
 
 
+def review_id(
+    review: Path | None,
+) -> str | None:
+    if review is None:
+        return None
+
+    return review_metadata_value(
+        review,
+        "id",
+    )
+
+
+def add_lineage(
+    result: dict[str, Any],
+    existing: Path | None,
+    predecessor: Path | None,
+    force: bool,
+) -> None:
+    if existing is not None:
+        if force:
+            result["rerunOf"] = review_id(
+                existing
+            )
+
+        return
+
+    if predecessor is None:
+        return
+
+    predecessor_protocol = review_metadata_value(
+        predecessor,
+        "protocol-version",
+    )
+
+    predecessor_fingerprint = review_metadata_value(
+        predecessor,
+        "input-fingerprint",
+    )
+
+    if (
+        predecessor_protocol != PROTOCOL_VERSION
+        or not predecessor_fingerprint
+        or predecessor_fingerprint == "none"
+    ):
+        result["legacyPredecessor"] = (
+            review_id(predecessor)
+        )
+        return
+
+    result["supersedes"] = review_id(
+        predecessor
+    )
+
+
 def command_prepare(
     args: argparse.Namespace,
 ) -> int:
     root = args.root.resolve()
+
     reviews_dir = (
         root
         / args.reviews_dir
@@ -283,12 +452,18 @@ def command_prepare(
         input_fingerprint,
     )
 
+    predecessor = find_latest_review_for_target(
+        reviews_dir,
+        review_input.target,
+    )
+
     sequence = next_sequence(
         reviews_dir
     )
 
-    result = {
+    result: dict[str, Any] = {
         "protocolVersion": PROTOCOL_VERSION,
+        "executionMode": "canonical",
         "reviewType": args.type,
         "skill": args.skill,
         "inputFingerprint": (
@@ -318,6 +493,13 @@ def command_prepare(
         ),
     }
 
+    add_lineage(
+        result=result,
+        existing=existing,
+        predecessor=predecessor,
+        force=args.force,
+    )
+
     if existing and not args.force:
         result["reason"] = (
             "Equivalent completed review "
@@ -325,13 +507,10 @@ def command_prepare(
         )
 
     elif existing and args.force:
-        result["rerunOf"] = (
-            extract_metadata_value(
-                existing.read_text(
-                    encoding="utf-8"
-                ),
-                "id",
-            )
+        result["reason"] = (
+            "Equivalent completed review "
+            "exists, but an explicit rerun "
+            "was requested."
         )
 
     else:
@@ -379,23 +558,35 @@ def command_check(
 
     if not review_path.is_file():
         fail(
-            f"Review does not exist: "
+            "Review does not exist: "
             f"{args.review}"
         )
 
-    text = review_path.read_text(
-        encoding="utf-8"
+    recorded_protocol = review_metadata_value(
+        review_path,
+        "protocol-version",
     )
 
-    recorded = extract_metadata_value(
-        text,
+    if recorded_protocol != PROTOCOL_VERSION:
+        fail(
+            "Review protocol version is not "
+            "compatible with the current "
+            f"protocol. Review={recorded_protocol!r}, "
+            f"current={PROTOCOL_VERSION!r}"
+        )
+
+    recorded = review_metadata_value(
+        review_path,
         "input-fingerprint",
     )
 
-    if not recorded:
+    if (
+        not recorded
+        or recorded == "none"
+    ):
         fail(
-            "Review does not contain "
-            "input-fingerprint metadata."
+            "Review does not contain a "
+            "canonical input fingerprint."
         )
 
     review_input = build_review_input(
