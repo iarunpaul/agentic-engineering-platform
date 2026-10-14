@@ -16,6 +16,17 @@ target-sha256: {{target_sha256}}
 input-fingerprint: {{input_fingerprint}}
 {{lineage_metadata}}
 ```
+## Execution Manifest
+
+```yaml
+protocol-version: {{protocol_version}}
+platform-version: {{platform_version}}
+target:
+  path: {{reviewed_artifact}}
+  sha256: {{target_sha256}}
+context:
+{{execution_context}}
+```
 
 ## Review Context
 
