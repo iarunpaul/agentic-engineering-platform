@@ -43,25 +43,42 @@ Architecture Review follows:
 standards/ai/review-execution.md
 ```
 
-The review must have an explicit review target and a deterministic review context.
+or the installed platform equivalent:
 
-Before beginning substantive review:
+```text
+.engineering/platform/standards/ai/review-execution.md
+```
 
-1. resolve the review target
-2. identify relevant upstream requirements
-3. identify relevant Grill or requirement-review evidence
-4. identify parent architectural decisions
-5. identify relevant previous architecture reviews
-6. identify applicable standards and policies
-7. prepare the review execution using repository automation where available
+The review must have:
 
-When available, use:
+- an explicit review target
+- material upstream context
+- deterministic review preparation
+- durable review evidence
+
+### Review Tool Resolution
+
+Resolve review automation in this order:
 
 ```text
 scripts/review_execution.py
+.engineering/platform/scripts/review_execution.py
 ```
 
-to generate the normalized review manifest and input fingerprint.
+If either exists, use it before substantive review.
+
+Use the tool result as authoritative for:
+
+- protocol version
+- execution mode
+- normalized fingerprint
+- equivalent-review detection
+- next sequence
+- rerun lineage
+- supersession lineage
+- legacy predecessor lineage
+
+Do not manually replace these values when canonical tooling succeeds.
 
 ### Target Resolution
 
@@ -77,7 +94,7 @@ Repository-wide review must be explicitly requested.
 
 ### Context Resolution
 
-Relevant context normally includes:
+Relevant material context normally includes:
 
 ```text
 requirements
@@ -90,11 +107,13 @@ applicable standards/policies
 
 Do not mechanically include every ADR or review.
 
-Only include artifacts that materially affect the current decision.
+Previous reviews of the same target are lineage and finding-history sources.
+
+Do not include them as fingerprint context merely because they exist.
 
 ### Prior Finding Resolution
 
-Where previous reviews contain findings that the current architecture is expected to address, classify them as:
+Where previous or upstream reviews contain findings relevant to the current architecture, classify them as:
 
 ```text
 RESOLVES
@@ -107,13 +126,51 @@ Do not silently discard inherited findings.
 
 ### Idempotency
 
-If repository review-execution tooling reports an equivalent completed review with the same input fingerprint:
+If repository tooling reports:
 
-- do not create another completed review
-- report the existing review path
-- reuse the prior result unless the user explicitly requests a rerun
+```text
+shouldExecute: false
+```
 
-A deliberate rerun must preserve history rather than overwrite the existing review.
+do not perform another substantive review and do not create another completed artifact.
+
+Report the equivalent completed review.
+
+If:
+
+```text
+shouldExecute: true
+```
+
+perform the review and persist it using the sequence and lineage information returned by the tool.
+
+### Lineage
+
+Use lineage exactly as returned by canonical tooling:
+
+```text
+rerunOf
+    → same fingerprint + explicit rerun
+
+supersedes
+    → changed canonical inputs
+
+legacyPredecessor
+    → previous same-target review cannot be canonically compared
+```
+
+Do not use `rerun-of` merely because an older review exists.
+
+### Fallback
+
+If neither canonical tool path exists, or canonical preparation fails:
+
+- state that deterministic review automation is unavailable
+- do not claim canonical idempotency
+- do not invent a canonical fingerprint
+- mark any persisted review as fallback execution
+
+A fallback review must not be presented as equivalent to a canonical protocol review.
 
 ## Workflow
 

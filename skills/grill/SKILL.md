@@ -135,6 +135,93 @@ Do not reject a design merely because another design is possible.
 
 ---
 
+# Review Execution Protocol
+
+Grill follows:
+
+```text
+standards/ai/review-execution.md
+```
+
+or the installed platform equivalent:
+
+```text
+.engineering/platform/standards/ai/review-execution.md
+```
+
+The Interactive Discovery Gate governs how material unknowns are resolved.
+
+The Review Execution Protocol governs:
+
+- target identity
+- material review context
+- input fingerprinting
+- protocol compatibility
+- idempotency
+- review lineage
+- sequence allocation
+- persistence evidence
+
+## Review Tool Resolution
+
+Resolve deterministic review automation in this order:
+
+```text
+scripts/review_execution.py
+.engineering/platform/scripts/review_execution.py
+```
+
+If either exists, use it.
+
+The tool result is authoritative for:
+
+- protocol version
+- execution mode
+- input fingerprint
+- equivalent-review detection
+- next sequence
+- rerun lineage
+- supersession lineage
+- legacy predecessor lineage
+
+Do not manually recreate deterministic review bookkeeping when canonical tooling succeeds.
+
+## Same-Target Review History
+
+Previous reviews of the same target may be inspected for:
+
+- prior findings
+- unresolved conditions
+- outcome comparison
+- lineage
+
+but they must not be added to fingerprint context merely because they exist.
+
+## Idempotency
+
+If canonical tooling reports an equivalent completed Grill review:
+
+```text
+shouldExecute: false
+```
+
+do not repeat the completed Grill assessment.
+
+Report the existing review.
+
+Interactive discovery should not be restarted merely to reproduce an already equivalent completed review.
+
+## Fallback
+
+If deterministic review tooling is unavailable:
+
+- state that canonical review execution is unavailable
+- do not claim canonical idempotency
+- do not invent a canonical protocol fingerprint
+- mark any persisted review as fallback execution
+
+---
+
 # Interactive Discovery Gate
 
 Grill is interactive by default.
@@ -931,7 +1018,21 @@ After the Final Assessment Gate has been satisfied:
 1. produce the final Grill assessment
 2. determine the next review sequence number
 3. generate the review document from the Grill review template
-4. save the document under `docs/reviews/grill/`
+4. save the document under the review category selected by the Grill mode:
+
+```text
+requirement
+    → docs/reviews/requirements/
+
+architecture
+    → docs/reviews/architecture/
+
+implementation-plan
+    → docs/reviews/implementation/
+
+production-change
+    → docs/reviews/production-change/
+```
 5. report the created file path to the user
 
 If the agent cannot write repository files:
