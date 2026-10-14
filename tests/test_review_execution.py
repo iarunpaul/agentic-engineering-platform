@@ -118,6 +118,102 @@ class ReviewExecutionTests(
             output.getvalue()
         )
 
+    def run_check(
+        self,
+        root: Path,
+        review: str,
+        target: str = "target.md",
+        contexts: list[str] | None = None,
+    ) -> tuple[int, str]:
+        args = Namespace(
+            root=root,
+            type="architecture",
+            skill="architecture-review",
+            target=target,
+            context=contexts or [],
+            platform_version="v0.2.1",
+            review=review,
+        )
+
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            result = (
+                review_execution
+                .command_check(args)
+            )
+
+        return (
+            result,
+            output.getvalue(),
+        )
+
+    def write_canonical_review(
+        self,
+        path: Path,
+        review_id: str,
+        review_input,
+        include_manifest: bool = True,
+        manifest_override: dict | None = None,
+    ) -> None:
+        input_fingerprint = (
+            review_execution
+            .fingerprint(review_input)
+        )
+
+        lines = [
+            "# Review",
+            "",
+            "## Metadata",
+            "",
+            "```yaml",
+            f"id: {review_id}",
+            "type: architecture",
+            "skill: architecture-review",
+            "status: completed",
+            "reviewed-artifact: "
+            f"{review_input.target}",
+            "platform-version: "
+            f"{review_input.platform_version}",
+            'protocol-version: "1"',
+            "execution-mode: canonical",
+            "target-sha256: "
+            f"{review_input.target_sha256}",
+            "input-fingerprint: "
+            f"{input_fingerprint}",
+            "```",
+            "",
+        ]
+
+        if include_manifest:
+            manifest = (
+                manifest_override
+                if manifest_override is not None
+                else review_execution.manifest_dict(
+                    review_input
+                )
+            )
+
+            lines.extend(
+                [
+                    "## Execution Manifest",
+                    "",
+                    "```json",
+                    json.dumps(
+                        manifest,
+                        indent=2,
+                        sort_keys=True,
+                    ),
+                    "```",
+                    "",
+                ]
+            )
+
+        path.write_text(
+            "\n".join(lines),
+            encoding="utf-8",
+        )
+
     def test_fingerprint_is_repeatable(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -610,6 +706,177 @@ class ReviewExecutionTests(
                 review_execution.next_sequence(
                     reviews
                 ),
+            )
+
+    def test_check_accepts_exact_execution_manifest(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            (root / "target.md").write_text(
+                "target\n",
+                encoding="utf-8",
+            )
+
+            review_input = (
+                review_execution
+                .build_review_input(
+                    root=root,
+                    review_type="architecture",
+                    skill="architecture-review",
+                    target="target.md",
+                    contexts=[],
+                    platform_version="v0.2.1",
+                )
+            )
+
+            review = root / "review.md"
+
+            self.write_canonical_review(
+                path=review,
+                review_id="REVIEW-ARC-0001",
+                review_input=review_input,
+            )
+
+            result, output = self.run_check(
+                root=root,
+                review="review.md",
+            )
+
+            self.assertEqual(
+                0,
+                result,
+            )
+
+            self.assertIn(
+                "execution manifest matches",
+                output.lower(),
+            )
+
+
+    def test_check_rejects_missing_execution_manifest(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            (root / "target.md").write_text(
+                "target\n",
+                encoding="utf-8",
+            )
+
+            review_input = (
+                review_execution
+                .build_review_input(
+                    root=root,
+                    review_type="architecture",
+                    skill="architecture-review",
+                    target="target.md",
+                    contexts=[],
+                    platform_version="v0.2.1",
+                )
+            )
+
+            review = root / "review.md"
+
+            self.write_canonical_review(
+                path=review,
+                review_id="REVIEW-ARC-0001",
+                review_input=review_input,
+                include_manifest=False,
+            )
+
+            with self.assertRaises(SystemExit):
+                self.run_check(
+                    root=root,
+                    review="review.md",
+                )
+
+
+    def test_check_rejects_modified_execution_manifest(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            (root / "target.md").write_text(
+                "target\n",
+                encoding="utf-8",
+            )
+
+            review_input = (
+                review_execution
+                .build_review_input(
+                    root=root,
+                    review_type="architecture",
+                    skill="architecture-review",
+                    target="target.md",
+                    contexts=[],
+                    platform_version="v0.2.1",
+                )
+            )
+
+            modified = (
+                review_execution
+                .manifest_dict(
+                    review_input
+                )
+            )
+
+            modified["platformVersion"] = (
+                "v9.9.9"
+            )
+
+            review = root / "review.md"
+
+            self.write_canonical_review(
+                path=review,
+                review_id="REVIEW-ARC-0001",
+                review_input=review_input,
+                manifest_override=modified,
+            )
+
+            result, output = self.run_check(
+                root=root,
+                review="review.md",
+            )
+
+            self.assertEqual(
+                1,
+                result,
+            )
+
+            self.assertIn(
+                "manifest does not match",
+                output.lower(),
+            )
+
+
+    def test_prepare_exposes_rendered_manifest(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            (root / "target.md").write_text(
+                "target\n",
+                encoding="utf-8",
+            )
+
+            result = self.run_prepare(
+                root=root,
+                target="target.md",
+                contexts=[],
+            )
+
+            rendered = json.loads(
+                result["renderedManifest"]
+            )
+
+            self.assertEqual(
+                result["manifest"],
+                rendered,
             )
 
 

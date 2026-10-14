@@ -937,20 +937,56 @@ The final completed Grill assessment is an engineering record.
 
 ### Execution Manifest Persistence
 
-When canonical review tooling succeeds, persist the exact normalized input manifest returned by `review_execution.py`.
+When canonical review tooling succeeds, persist the exact normalized manifest returned by `review_execution.py`.
 
-Do not reconstruct the manifest from the human-readable review context.
+Use the `renderedManifest` value returned by:
 
-The persisted execution manifest must include:
+```text
+review_execution.py prepare
+```
 
-- protocol version
-- platform version
-- target path and SHA-256
-- every canonical context path and SHA-256
+to populate:
 
-The execution manifest is machine-verifiable evidence.
+```text
+{{execution_manifest}}
+```
 
-The Review Context section is human-readable engineering context and may be shorter.
+in the Grill review template.
+
+Do not:
+
+- reconstruct the manifest from Review Context
+- manually rewrite the manifest
+- remove context entries
+- add context entries after preparation
+- translate the manifest into another structure
+
+The persisted manifest is machine-verifiable execution evidence.
+
+The Review Context section is human-readable engineering context and may be shorter than the canonical execution manifest.
+
+After the completed review artifact is persisted, run:
+
+```text
+review_execution.py check
+```
+
+using the same target, context, skill, review type, and platform version used during preparation.
+
+A canonical review is not complete evidence unless this check succeeds.
+
+The check must validate both:
+
+```text
+input fingerprint
+execution manifest
+```
+
+If verification fails:
+
+- do not report canonical verification as passed
+- do not treat the artifact as completed canonical evidence
+- report the verification failure
 
 ## Default Review Location
 

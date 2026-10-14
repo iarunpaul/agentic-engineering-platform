@@ -18,14 +18,8 @@ input-fingerprint: {{input_fingerprint}}
 ```
 ## Execution Manifest
 
-```yaml
-protocol-version: {{protocol_version}}
-platform-version: {{platform_version}}
-target:
-  path: {{reviewed_artifact}}
-  sha256: {{target_sha256}}
-context:
-{{execution_context}}
+```json
+{{execution_manifest}}
 ```
 
 ## Review Context

@@ -373,20 +373,49 @@ The completed architecture review is an engineering record.
 
 ### Execution Manifest Persistence
 
-When canonical review tooling succeeds, persist the exact normalized input manifest returned by `review_execution.py`.
+When canonical review tooling succeeds, persist the exact normalized manifest returned by `review_execution.py`.
 
-Do not reconstruct the manifest from the human-readable review context.
+Use the `renderedManifest` value returned by:
 
-The persisted execution manifest must include:
+```text
+review_execution.py prepare
+```
 
-- protocol version
-- platform version
-- target path and SHA-256
-- every canonical context path and SHA-256
+to populate:
 
-The execution manifest is machine-verifiable evidence.
+```text
+{{execution_manifest}}
+```
 
-The Review Context section is human-readable engineering context and may be shorter.
+in the architecture-review template.
+
+Do not reconstruct, shorten, reinterpret, or translate the canonical manifest.
+
+The Review Context section remains the human-readable explanation of relevant engineering context.
+
+After persisting the completed review artifact, run:
+
+```text
+review_execution.py check
+```
+
+with exactly the same target, context, skill, review type, and platform version used during preparation.
+
+The review is canonical completed evidence only when verification succeeds.
+
+Verification must cover:
+
+```text
+input fingerprint
+target SHA-256
+execution manifest
+```
+
+If verification fails:
+
+- do not claim canonical verification passed
+- do not treat the review as completed canonical evidence
+- report the verification failure
 
 ### Default Review Location
 

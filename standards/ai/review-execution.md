@@ -581,6 +581,40 @@ Execution Manifest
 → exact machine-verifiable fingerprint inputs
 ```
 
+### Manifest Verification
+
+Canonical review verification must validate the persisted execution manifest against the normalized manifest calculated from the supplied review inputs.
+
+A canonical review must fail verification when:
+
+```text
+Execution Manifest is absent
+Execution Manifest is malformed
+Execution Manifest differs from the normalized canonical manifest
+target SHA-256 differs
+input fingerprint differs
+```
+
+The persisted manifest must use the canonical machine-readable representation produced by review-execution tooling.
+
+Current canonical representation:
+
+```text
+JSON
+```
+
+Human-readable Review Context must not be used as a substitute for the execution manifest.
+
+A review workflow must not report:
+
+```text
+canonical verification passed
+```
+
+unless deterministic verification succeeds for both the fingerprint and the persisted execution manifest.
+
+Failure to persist or verify the manifest means the artifact is not complete canonical Review Execution Protocol evidence.
+
 ## 18. Automation Boundary
 
 Deterministic operations should be performed by repository tooling where practical.

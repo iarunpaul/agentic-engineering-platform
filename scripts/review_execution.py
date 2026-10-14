@@ -243,6 +243,56 @@ def manifest_dict(
         ),
     }
 
+def rendered_manifest(
+    review_input: ReviewInput,
+) -> str:
+    return json.dumps(
+        manifest_dict(review_input),
+        indent=2,
+        sort_keys=True,
+        ensure_ascii=False,
+    )
+
+
+def extract_execution_manifest(
+    review_text: str,
+) -> dict[str, Any]:
+    pattern = re.compile(
+        r"^## Execution Manifest\s*$"
+        r".*?"
+        r"^```json\s*$"
+        r"\n(.*?)"
+        r"^```\s*$",
+        re.MULTILINE | re.DOTALL,
+    )
+
+    match = pattern.search(review_text)
+
+    if not match:
+        fail(
+            "Canonical review does not contain "
+            "a JSON Execution Manifest."
+        )
+
+    try:
+        value = json.loads(
+            match.group(1)
+        )
+    except json.JSONDecodeError as exc:
+        fail(
+            "Canonical review contains an "
+            "invalid JSON Execution Manifest: "
+            f"{exc}"
+        )
+
+    if not isinstance(value, dict):
+        fail(
+            "Canonical review Execution Manifest "
+            "must be a JSON object."
+        )
+
+    return value
+
 
 def fingerprint(
     review_input: ReviewInput,
@@ -472,6 +522,9 @@ def command_prepare(
         "manifest": manifest_dict(
             review_input
         ),
+        "renderedManifest": rendered_manifest(
+            review_input
+        ),
         "equivalentReview": (
             repository_relative(
                 root,
@@ -562,6 +615,10 @@ def command_check(
             f"{args.review}"
         )
 
+    review_text = review_path.read_text(
+        encoding="utf-8"
+    )
+
     recorded_protocol = review_metadata_value(
         review_path,
         "protocol-version",
@@ -573,6 +630,20 @@ def command_check(
             "compatible with the current "
             f"protocol. Review={recorded_protocol!r}, "
             f"current={PROTOCOL_VERSION!r}"
+        )
+
+    recorded_execution_mode = (
+        review_metadata_value(
+            review_path,
+            "execution-mode",
+        )
+    )
+
+    if recorded_execution_mode != "canonical":
+        fail(
+            "Review is not canonical. "
+            "Execution manifest verification "
+            "applies only to canonical reviews."
         )
 
     recorded = review_metadata_value(
@@ -618,8 +689,86 @@ def command_check(
 
         return 1
 
+    recorded_target_hash = (
+        review_metadata_value(
+            review_path,
+            "target-sha256",
+        )
+    )
+
+    if (
+        recorded_target_hash
+        != review_input.target_sha256
+    ):
+        print(
+            "Review target SHA-256 does not "
+            "match current target."
+        )
+
+        print(
+            "Recorded: "
+            f"{recorded_target_hash}"
+        )
+
+        print(
+            "Current:  "
+            f"{review_input.target_sha256}"
+        )
+
+        return 1
+
+    persisted_manifest = (
+        extract_execution_manifest(
+            review_text
+        )
+    )
+
+    expected_manifest = manifest_dict(
+        review_input
+    )
+
+    if persisted_manifest != expected_manifest:
+        print(
+            "Persisted execution manifest "
+            "does not match current "
+            "canonical inputs."
+        )
+
+        print(
+            "Persisted:"
+        )
+
+        print(
+            json.dumps(
+                persisted_manifest,
+                indent=2,
+                sort_keys=True,
+                ensure_ascii=False,
+            )
+        )
+
+        print(
+            "Expected:"
+        )
+
+        print(
+            json.dumps(
+                expected_manifest,
+                indent=2,
+                sort_keys=True,
+                ensure_ascii=False,
+            )
+        )
+
+        return 1
+
     print(
         "Review input fingerprint "
+        "matches current inputs."
+    )
+
+    print(
+        "Review execution manifest "
         "matches current inputs."
     )
 
