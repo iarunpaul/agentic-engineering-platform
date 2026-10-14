@@ -935,6 +935,23 @@ Interactive discovery responses are temporary conversation state.
 
 The final completed Grill assessment is an engineering record.
 
+### Execution Manifest Persistence
+
+When canonical review tooling succeeds, persist the exact normalized input manifest returned by `review_execution.py`.
+
+Do not reconstruct the manifest from the human-readable review context.
+
+The persisted execution manifest must include:
+
+- protocol version
+- platform version
+- target path and SHA-256
+- every canonical context path and SHA-256
+
+The execution manifest is machine-verifiable evidence.
+
+The Review Context section is human-readable engineering context and may be shorter.
+
 ## Default Review Location
 
 Store completed Grill reviews under a folder that reflects the engineering concern being reviewed.

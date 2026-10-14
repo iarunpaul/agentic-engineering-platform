@@ -552,6 +552,35 @@ Canonical completed reviews must contain the fingerprint returned by the review-
 
 If the runtime cannot persist the artifact, it must not claim that persistence occurred.
 
+### Execution Manifest Persistence
+
+Every canonical completed review must persist the normalized review input manifest used to calculate its fingerprint.
+
+The persisted manifest must include:
+
+```text
+protocol version
+platform version
+target path
+target SHA-256
+context paths
+context SHA-256 values
+```
+
+The persisted manifest must be derived directly from canonical review-execution tooling.
+
+Do not reconstruct it from the human-readable Review Context section.
+
+The two sections serve different purposes:
+
+```text
+Review Context
+→ human-readable explanation of relevant engineering evidence
+
+Execution Manifest
+→ exact machine-verifiable fingerprint inputs
+```
+
 ## 18. Automation Boundary
 
 Deterministic operations should be performed by repository tooling where practical.
